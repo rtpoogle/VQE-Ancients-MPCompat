@@ -1,3 +1,4 @@
+using Multiplayer.API;
 using RimWorld;
 using System.Collections.Generic;
 using System.Linq;
@@ -190,41 +191,51 @@ namespace VanillaQuestsExpandedAncients
             command.defaultLabel = labelKey.Translate() + "...";
             command.defaultDesc = descKey.Translate();
             command.icon = icon;
-            command.action = delegate
-            {
-                List<FloatMenuOption> list = new List<FloatMenuOption>();
-                IReadOnlyList<Pawn> allPawnsSpawned = Map.mapPawns.AllPawnsSpawned;
-                for (int j = 0; j < allPawnsSpawned.Count; j++)
-                {
-                    Pawn pawn = allPawnsSpawned[j];
-                    AcceptanceReport acceptanceReport = CanAcceptPawn(pawn);
-                    if (!acceptanceReport.Accepted)
-                    {
-                        if (!acceptanceReport.Reason.NullOrEmpty())
-                        {
-                            list.Add(new FloatMenuOption(pawn.LabelShortCap + ": " + acceptanceReport.Reason, null));
-                        }
-                    }
-                    else
-                    {
-                        list.Add(new FloatMenuOption(pawn.LabelShortCap, delegate
-                        {
-                            SelectPawn(pawn);
-                        }));
-                    }
-                }
-                if (!list.Any())
-                {
-                    list.Add(new FloatMenuOption(noPawnsKey.Translate(), null));
-                }
-                Find.WindowStack.Add(new FloatMenu(list));
-            };
+            command.action = CreateInsertPawnGizmo_command;
             if (disableWhenOccupied && SelectedPawn != null)
             {
                 command.Disable("VQEA_WonderdocOccupied".Translate());
             }
             return command;
         }
+
+        [SyncMethod]
+        private void CreateInsertPawnGizmo_command()
+        {
+            List<FloatMenuOption> list = new List<FloatMenuOption>();
+            IReadOnlyList<Pawn> allPawnsSpawned = Map.mapPawns.AllPawnsSpawned;
+            for (int j = 0; j < allPawnsSpawned.Count; j++)
+            {
+                Pawn pawn = allPawnsSpawned[j];
+                AcceptanceReport acceptanceReport = CanAcceptPawn(pawn);
+                if (!acceptanceReport.Accepted)
+                {
+                    if (!acceptanceReport.Reason.NullOrEmpty())
+                    {
+                        list.Add(new FloatMenuOption(pawn.LabelShortCap + ": " + acceptanceReport.Reason, null));
+                    }
+                }
+                else
+                {
+                    list.Add(new FloatMenuOption(pawn.LabelShortCap, SelectPawn));
+                }
+            }
+            if (!list.Any())
+            {
+                list.Add(new FloatMenuOption("VQEA_NoInjectablePawns".Translate(), null));
+            }
+            Find.WindowStack.Add(new FloatMenu(list));
+        }
+
+        [SyncField]
+        private Pawn _pawn;
+
+        [SyncMethod]
+        private void SelectPawn()
+        {
+            SelectPawn(_pawn);
+        }
+
         protected virtual IEnumerable<Gizmo>GetPawnProcessorGizmos()
         {
             if (CanCancel())
@@ -232,10 +243,7 @@ namespace VanillaQuestsExpandedAncients
                 Command_Action command_Action3 = new Command_Action();
                 command_Action3.defaultLabel = "Cancel".Translate();
                 command_Action3.icon = ContentFinder<Texture2D>.Get("UI/Designators/Cancel");
-                command_Action3.action = delegate
-                {
-                    CancelProcess();
-                };
+                command_Action3.action = CancelProcess;
                 command_Action3.activateSound = SoundDefOf.Designate_Cancel;
                 yield return command_Action3;
             }
@@ -246,13 +254,16 @@ namespace VanillaQuestsExpandedAncients
                 {
                     Command_Action command_Action4 = new Command_Action();
                     command_Action4.defaultLabel = "DEV: Complete";
-                    command_Action4.action = delegate
-                    {
-                        ticksRemaining = 1;
-                    };
+                    command_Action4.action = Complete;
                     yield return command_Action4;
                 }
             }
+        }
+
+        [SyncMethod]
+        private void Complete()
+        {
+            ticksRemaining = 1;
         }
 
         protected virtual bool CanCancel()
@@ -260,6 +271,7 @@ namespace VanillaQuestsExpandedAncients
             return SelectedPawn != null;
         }
 
+        [SyncMethod]
         public virtual void CancelProcess()
         {
             innerContainer.TryDropAll(InteractionCell, Map, ThingPlaceMode.Near);

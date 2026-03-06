@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
+using Multiplayer.API;
 using RimWorld;
 using UnityEngine;
 using Verse;
@@ -78,10 +79,7 @@ namespace VanillaQuestsExpandedAncients
                 defaultLabel = "VQEA_LoadCargo".Translate(),
                 defaultDesc = "VQEA_LoadCargoDesc".Translate(),
                 icon = LoadCommandTex,
-                action = delegate
-                {
-                    Find.WindowStack.Add(new Dialog_LoadPneumaticTube(this, transporter, Map));
-                }
+                action = VQEA_LoadCargo
             };
             yield return command;
 
@@ -91,25 +89,32 @@ namespace VanillaQuestsExpandedAncients
                 launch.defaultLabel = "VQEA_LaunchCapsule".Translate();
                 launch.defaultDesc = "VQEA_LaunchCapsuleDesc".Translate();
                 launch.icon = LaunchCommandTex;
-                launch.action = delegate
-                {
-                    Launch();
-                };
+                launch.action = Launch;
                 yield return launch;
             }
             if (DebugSettings.ShowDevGizmos && ticksUntilDelivery > 0)
             {
                 Command_Action devDeliver = new Command_Action();
                 devDeliver.defaultLabel = "DEV: Trigger delivery";
-                devDeliver.action = delegate
-                {
-                    Deliver();
-                    ticksUntilDelivery = 0;
-                };
+                devDeliver.action = devDeliver_Trigger;
                 yield return devDeliver;
             }
         }
 
+        [SyncMethod]
+        private void VQEA_LoadCargo()
+        {
+            Find.WindowStack.Add(new Dialog_LoadPneumaticTube(this, transporter, Map));
+        }
+
+        [SyncMethod]
+        private void devDeliver_Trigger()
+        {
+            Deliver();
+            ticksUntilDelivery = 0;
+        }
+
+        [SyncMethod]
         public void Launch()
         {
             Map map = Map;

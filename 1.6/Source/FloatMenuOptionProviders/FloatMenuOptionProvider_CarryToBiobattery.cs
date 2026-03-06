@@ -1,5 +1,6 @@
 ﻿
 using System;
+using Multiplayer.API;
 using RimWorld;
 using UnityEngine;
 using Verse;
@@ -40,26 +41,36 @@ namespace VanillaQuestsExpandedAncients
             {
                 return FloatMenuUtility.DecoratePrioritizedTask(new FloatMenuOption(taggedString + " (" + "CryptosleepCasketGuestPrisonersNotAllowed".Translate() + ")", null, MenuOptionPriority.Default, null, clickedPawn), context.FirstSelectedPawn, clickedPawn);
             }
-            Action action = delegate
+            _context = context;
+            _clickedPawn = clickedPawn;
+            return FloatMenuUtility.DecoratePrioritizedTask(new FloatMenuOption(taggedString, CarryToBioBatteryJobGiver, MenuOptionPriority.Default, null, clickedPawn), context.FirstSelectedPawn, clickedPawn);
+        }
+
+        [SyncField]
+        private FloatMenuContext _context;
+
+        [SyncField]
+        private Pawn _clickedPawn;
+
+        [SyncMethod]
+        private void CarryToBioBatteryJobGiver()
+        {
+            Thing building_Battery = CompBioBattery.FindBatteryFor(_clickedPawn, _context.FirstSelectedPawn);
+            if (building_Battery == null)
             {
-                Thing building_Battery = CompBioBattery.FindBatteryFor(clickedPawn, context.FirstSelectedPawn);
-                if (building_Battery == null)
-                {
-                    building_Battery = CompBioBattery.FindBatteryFor(clickedPawn, context.FirstSelectedPawn, ignoreOtherReservations: true);
-                }
-                if (building_Battery == null)
-                {
-                    Messages.Message("CannotCarryToCryptosleepCasket".Translate() + ": " + "NoCryptosleepCasket".Translate(), clickedPawn, MessageTypeDefOf.RejectInput, historical: false);
-                }
-                else
-                {
-                    Job job = JobMaker.MakeJob(InternalDefOf.VQEA_CarryToBioBattery, clickedPawn, building_Battery);
-                    job.count = 1;
-                    context.FirstSelectedPawn.jobs.TryTakeOrderedJob(job, JobTag.Misc);
-                
-                }
-            };
-            return FloatMenuUtility.DecoratePrioritizedTask(new FloatMenuOption(taggedString, action, MenuOptionPriority.Default, null, clickedPawn), context.FirstSelectedPawn, clickedPawn);
+                building_Battery = CompBioBattery.FindBatteryFor(_clickedPawn, _context.FirstSelectedPawn, ignoreOtherReservations: true);
+            }
+            if (building_Battery == null)
+            {
+                Messages.Message("CannotCarryToCryptosleepCasket".Translate() + ": " + "NoCryptosleepCasket".Translate(), _clickedPawn, MessageTypeDefOf.RejectInput, historical: false);
+            }
+            else
+            {
+                Job job = JobMaker.MakeJob(InternalDefOf.VQEA_CarryToBioBattery, _clickedPawn, building_Battery);
+                job.count = 1;
+                _context.FirstSelectedPawn.jobs.TryTakeOrderedJob(job, JobTag.Misc);
+
+            }
         }
     }
 }

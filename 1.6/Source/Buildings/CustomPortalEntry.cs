@@ -1,10 +1,11 @@
+using Multiplayer.API;
+using RimWorld;
+using RimWorld.Planet;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 using Verse;
 using Verse.Sound;
-using RimWorld;
-using RimWorld.Planet;
 
 namespace VanillaQuestsExpandedAncients
 {
@@ -50,12 +51,15 @@ namespace VanillaQuestsExpandedAncients
                     defaultLabel = CustomPortalComp.Props.viewDestinationCommandKey.Translate(),
                     defaultDesc = CustomPortalComp.Props.viewDestinationDescKey.Translate(),
                     icon = ContentFinder<Texture2D>.Get(CustomPortalComp.Props.viewDestinationTexPath),
-                    action = delegate
-                    {
-                        CameraJumper.TryJumpAndSelect(destinationExit);
-                    }
+                    action = viewDestinationCommand
                 };
             }
+        }
+
+        [SyncMethod]
+        private void viewDestinationCommand()
+        {
+            CameraJumper.TryJumpAndSelect(destinationExit);
         }
 
         private void GenerateDestinationMap()

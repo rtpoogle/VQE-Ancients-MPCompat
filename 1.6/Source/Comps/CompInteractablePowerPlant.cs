@@ -6,6 +6,7 @@ using RimWorld;
 
 using Verse.AI;
 using Verse.Sound;
+using Multiplayer.API;
 
 
 namespace VanillaQuestsExpandedAncients
@@ -51,12 +52,9 @@ namespace VanillaQuestsExpandedAncients
 
         public override IEnumerable<FloatMenuOption> CompFloatMenuOptions(Pawn selPawn)
         {
-
+            _selPawn = selPawn;
             AcceptanceReport acceptanceReport = CanInteract(selPawn);
-            FloatMenuOption floatMenuOption = new FloatMenuOption(Props.jobString.CapitalizeFirst(), delegate
-            {
-                OrderActivation(selPawn);
-            });
+            FloatMenuOption floatMenuOption = new FloatMenuOption(Props.jobString.CapitalizeFirst(), OrderActivation);
             if (!acceptanceReport.Accepted)
             {
                 floatMenuOption.Disabled = true;
@@ -64,6 +62,15 @@ namespace VanillaQuestsExpandedAncients
             }
             yield return floatMenuOption;
 
+        }
+
+        [SyncField]
+        private Pawn _selPawn;
+
+        [SyncMethod]
+        private void OrderActivation()
+        {
+            OrderActivation(_selPawn);
         }
 
         protected override void OnInteracted(Pawn caster)

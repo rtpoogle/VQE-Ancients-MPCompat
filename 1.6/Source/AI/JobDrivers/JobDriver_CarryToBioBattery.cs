@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using Multiplayer.API;
 using RimWorld;
 using Verse;
 using Verse.AI;
@@ -34,9 +35,15 @@ namespace VanillaQuestsExpandedAncients
             yield return PrepareToEnterToil(BatteryInd);
             yield return new Toil
             {
-                initAction = delegate { Pod.InsertPawn(Takee); },
+                initAction = initAction,
                 defaultCompleteMode = ToilCompleteMode.Instant
             };
+        }
+
+        [SyncMethod]
+        private void initAction()
+        {
+            Pod.InsertPawn(Takee);
         }
 
         public static Toil PrepareToEnterToil(TargetIndex podIndex)
@@ -48,3 +55,4 @@ namespace VanillaQuestsExpandedAncients
         }
     }
 }
+

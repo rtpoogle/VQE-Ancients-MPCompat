@@ -1,3 +1,4 @@
+using Multiplayer.API;
 using RimWorld;
 using RimWorld.Planet;
 using RimWorld.QuestGen;
@@ -118,13 +119,19 @@ namespace VanillaQuestsExpandedAncients
 
             if (failWhenMapRemoved)
             {
-                quest.SignalPassActivable(delegate
-                {
-                    quest.End(QuestEndOutcome.Fail, 0, null, null, QuestPart.SignalListenMode.OngoingOnly, sendStandardLetter: true);
-                }, siteMapGeneratedSignal, siteMapRemovedSignal);
+                quest.SignalPassActivable(onSignalPassActivable, siteMapGeneratedSignal, siteMapRemovedSignal);
             }
 
             return site;
+        }
+
+        [SyncField]
+        private Quest _quest;
+
+        [SyncMethod]
+        private void onSignalPassActivable()
+        {
+            _quest.End(QuestEndOutcome.Fail, 0, null, null, QuestPart.SignalListenMode.OngoingOnly, sendStandardLetter: true);
         }
 
         protected Faction CreateFaction(FactionDef factionDef)

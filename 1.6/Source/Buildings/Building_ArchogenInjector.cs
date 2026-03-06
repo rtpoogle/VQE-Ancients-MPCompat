@@ -1,11 +1,12 @@
+using Multiplayer.API;
+using RimWorld;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using RimWorld;
+using System.Text;
 using UnityEngine;
 using Verse;
 using Verse.AI;
-using System.Text;
 using Verse.Sound;
 
 namespace VanillaQuestsExpandedAncients
@@ -204,15 +205,24 @@ namespace VanillaQuestsExpandedAncients
             AcceptanceReport acceptanceReport = CanAcceptPawn(selPawn);
             if (acceptanceReport.Accepted)
             {
-                yield return FloatMenuUtility.DecoratePrioritizedTask(new FloatMenuOption("EnterBuilding".Translate(this), delegate
-                {
-                    SelectPawn(selPawn);
-                }), selPawn, this);
+                _selPawn = selPawn;
+                yield return FloatMenuUtility.DecoratePrioritizedTask(
+                                 new FloatMenuOption("EnterBuilding".Translate(this), EnterBuilding)
+                             , selPawn, this);
             }
             else if (!acceptanceReport.Reason.NullOrEmpty())
             {
                 yield return new FloatMenuOption("CannotEnterBuilding".Translate(this) + ": " + acceptanceReport.Reason.CapitalizeFirst(), null);
             }
+        }
+
+        [SyncField]
+        private Pawn _selPawn;
+
+        [SyncMethod]
+        private void EnterBuilding()
+        {
+            SelectPawn(_selPawn);
         }
 
         protected override bool ShouldProcessTick()
@@ -310,12 +320,14 @@ namespace VanillaQuestsExpandedAncients
             {
                 Command_Action command_Action5 = new Command_Action();
                 command_Action5.defaultLabel = (debugDisableNeedForIngredients ? "DEV: Enable Ingredients" : "DEV: Disable Ingredients");
-                command_Action5.action = delegate
-                {
-                    debugDisableNeedForIngredients = !debugDisableNeedForIngredients;
-                };
+                command_Action5.action = debugDisableNeedForIngredients_Toggle;
                 yield return command_Action5;
             }
+        }
+
+        private void debugDisableNeedForIngredients_Toggle()
+        {
+            debugDisableNeedForIngredients = !debugDisableNeedForIngredients;
         }
 
         public override string GetInspectString()
@@ -411,30 +423,9 @@ namespace VanillaQuestsExpandedAncients
             }
             if (architeGeneChoices.Any() || sideEffectGeneChoices.Any())
             {
-                Find.WindowStack.Add(new Window_GeneChoice(architeGeneChoices, sideEffectGeneChoices, delegate (GeneDef selectedArchite, GeneDef selectedSideEffect)
-                {
-                    if (selectedArchite != null)
-                    {
-                        pawn.genes.AddGene(selectedArchite, xenogene: true);
-                        generatedArchiteGene = selectedArchite;
-                    }
-                    else if (allArchiteGenes.Any())
-                    {
-                        var randomArchite = allArchiteGenes.RandomElement();
-                        pawn.genes.AddGene(randomArchite, xenogene: true);
-                        generatedArchiteGene = randomArchite;
-                    }
-                    if (selectedSideEffect != null)
-                    {
-                        pawn.genes.AddGene(selectedSideEffect, xenogene: true);
-                        generatedSideEffectGene = selectedSideEffect;
-                    }
-                    else
-                    {
-                        AddRandomSideEffectGene(pawn);
-                    }
-                    PostGeneSelectionSuccess(pawn);
-                }));
+                _pawn = pawn;
+                _allArchiteGenes = allArchiteGenes;
+                Find.WindowStack.Add(new Window_GeneChoice(architeGeneChoices, sideEffectGeneChoices, GeneChoice));
             }
             else
             {
@@ -447,6 +438,36 @@ namespace VanillaQuestsExpandedAncients
                 AddRandomSideEffectGene(pawn);
                 PostGeneSelectionSuccess(pawn);
             }
+        }
+
+        [SyncField]
+        private Pawn _pawn;
+        private List<GeneDef> _allArchiteGenes;
+
+        [SyncMethod]
+        private void GeneChoice(GeneDef selectedArchite, GeneDef selectedSideEffect)
+        {
+            if (selectedArchite != null)
+            {
+                _pawn.genes.AddGene(selectedArchite, xenogene: true);
+                generatedArchiteGene = selectedArchite;
+            }
+            else if (_allArchiteGenes.Any())
+            {
+                var randomArchite = _allArchiteGenes.RandomElement();
+                _pawn.genes.AddGene(randomArchite, xenogene: true);
+                generatedArchiteGene = randomArchite;
+            }
+            if (selectedSideEffect != null)
+            {
+                _pawn.genes.AddGene(selectedSideEffect, xenogene: true);
+                generatedSideEffectGene = selectedSideEffect;
+            }
+            else
+            {
+                AddRandomSideEffectGene(_pawn);
+            }
+            PostGeneSelectionSuccess(_pawn);
         }
 
         private void AddRandomSideEffectGene(Pawn pawn)
